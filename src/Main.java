@@ -1,3 +1,5 @@
+import com.sun.jdi.ArrayReference;
+
 import java.io.*;
 import java.util.*;
 public class Main {
@@ -10,7 +12,6 @@ public class Main {
     static ArrayList<Process> averageWaiting=new ArrayList<>();//TO COMPUTE AVERAGE WAITING FOR ALL PROCESSES
     static Process pAtCpu=new Process();//PROCESS RUNNING AT CPU
     static Process pAtIO=new Process();//PROCESS RUNNING AT IO
-
     static int q1;//QUANTUM TIME
     static int q2;//SECOND QUANTUM TIME
     static int  cpuTimer=0;//TIMER FOR CPU
@@ -574,6 +575,7 @@ public class Main {
                 int counter=0;
                 int flag=0;//to check if a process has arrived while a process is executing at cpu3
                 int flag2=0;//to check for other processes cpuBurst TIME
+            int flag3=0;//to check Q2
 
                 pAtCpu=p;//save the current running process at cpu
 
@@ -625,27 +627,47 @@ public class Main {
                                 break;//stop executing
 
                             //also i have to check another processes in Q2, after you break the process after you find one with SRT, don't forget to put it pack in the   QUEUE
-                            // I have to check another processes in the Q3
+                        ArrayList<Process> t=new ArrayList<>();
+                        for(int i=0;i<Q2.size();i++)
+                        {
+                            t.add(Q2.poll());
+
+                        }
+                        for(int i=0;i< t.size();i++)//check if any process has arrived
+                        {
+                            if(t.get(i).getArrivalTime()==cpuTimer)
+                            {
+                                flag3=1;
+                            }
+                        }
+                        for(int i= t.size()-1;i>=0;i--)
+                        {
+                            Q2.offer(t.get(i));//re send the process to the queue
+                        }
+                        if(flag3==1){//if process has reached, break the loop
+                        break;}//stop executing
+
+                        // I have to check another processes in the Q3
                             //but to check them you need an array list to check them
                             //but before reduce CPU BURST FOR THIS PROCESS BY ONE
 
                             //after this check for other processes, if process with less cpu burst came in, break
-                            ArrayList<Process> t=new ArrayList<>();
+                            ArrayList<Process> t2=new ArrayList<>();
                             for(int i=0;i< Q3.size();i++)//put procceses of Q3 AT t
                                 {
-                                    t.add(Q3.poll());
+                                    t2.add(Q3.poll());
                                 }//let's compare between processes and p
-                            for(int i=0;i<t.size();i++)
+                            for(int i=0;i<t2.size();i++)
                                 {
-                                    if(t.get(i).getCpuBurst().get(0)<p.getCpuBurst().get(0))
+                                    if(t2.get(i).getCpuBurst().get(0)<p.getCpuBurst().get(0))
                                         {
                                             flag2 = 1;
                                         }
                                 }
                             //re send the processes to the queue
-                            for(int i=t.size()-1;i>=0;i--)
+                            for(int i=t2.size()-1;i>=0;i--)
                                 {
-                                    Q3.offer(t.get(i));
+                                    Q3.offer(t2.get(i));
                                 }
                             if(flag2==1)//there is a process with less SRT
                                 break;
@@ -658,7 +680,7 @@ public class Main {
 
                 System.out.print("]");
                 System.out.println();
-               if(flag==1||flag2==1)
+               if(flag==1||flag2==1||flag3==1)
                   System.out.println("PROCESS ("+p.getpID()+") HAS BEEN EXECUTING FOR: "+counter+"\n"+"AND THE REMAINING TIME FOR THIS CPU BURST: "+(tmpBurst-counter));
                else
                    System.out.println("PROCESS ("+p.getpID()+") HAS BEEN EXECUTING FOR: "+(counter-1)+"\n"+"AND THE REMAINING TIME FOR THIS CPU BURST: "+(tmpBurst-(counter-1)));
@@ -670,7 +692,7 @@ public class Main {
                     printProcessesInQ3(p);
                     printProcessesInQ4(p);          }
 
-                if(flag==1||flag2==1) {
+                if(flag==1||flag2==1||flag3==1) {
                     p.setTotalWorked(p.getTotalWorked() + counter);
                      }
                 else {
@@ -682,7 +704,7 @@ public class Main {
                 if(p.getCpuBurst().get(0)<=0)//this means that the process has finished its cpu burst, then make it's cpu burst zero
                 {
                             p.getCpuBurst().remove(0);//remove this cpu burst
-                            if(flag!=1&&flag2!=1)
+                            if(flag!=1&&flag2!=1&&flag3!=1)
                                 cpuTimer--;
                             //now check for I/O
                             p.setFinishTime(cpuTimer);
@@ -716,7 +738,6 @@ public class Main {
                                                 {
                                                     averageWaiting.remove(i);
                                                     averageWaiting.add(p);
-                                               //     i=-1;
                                                     exist=1;
                                                 }
                                         }
@@ -727,7 +748,7 @@ public class Main {
                 }
 
                 //now there is two types of interruption, the first one because of Q1,Q2, AND FOR THIS TYPE RE ADD THE PROCESS TO Q3
-                else if(flag==1)
+                else if(flag==1||flag3==1)
                     {
                         p.setArrivalTime(cpuTimer);
                         Q3.offer(p);//put the process back in the QUEUE
@@ -751,6 +772,8 @@ public class Main {
         {
                 int counter=0;
                 int flag=0;//to check if process has arrived in Q1
+                int flag2=0;
+                int flag3=3;
 
                 pAtCpu=p;//save the current running process at cpu
                 if(pAtCpu==pAtIO)//if the the current process was at IO, THEN THE TIMER OF CPU, MUST BE THE SAME WHERE IO REACHED
@@ -802,7 +825,49 @@ public class Main {
                         if(flag==1)//if process has reached, break the loop
                             break;//stop executing
 
-                        System.out.print(cpuTimer+" ");
+
+                    ArrayList<Process> t=new ArrayList<>();
+                    for(int i=0;i<Q2.size();i++)
+                    {
+                        t.add(Q2.poll());
+                    }
+                    for(int i=0;i< t.size();i++)//check if any process has arrived
+                    {
+                        if(t.get(i).getArrivalTime()==cpuTimer)
+                        {
+                            flag3=1;
+                        }
+                    }
+                    for(int i= t.size()-1;i>=0;i--)
+                    {
+                        Q2.offer(t.get(i));//re send the process to the queue
+                    }
+                    if(flag3==1){//if process has reached, break the loop
+                        break;}//stop executing
+
+
+                    //after this check for other processes, if process with less cpu burst came in, break
+                    ArrayList<Process> t2=new ArrayList<>();
+                    for(int i=0;i< Q3.size();i++)//put procceses of Q3 AT t
+                    {
+                        t2.add(Q3.poll());
+                    }//let's compare between processes and p
+                    for(int i=0;i<t2.size();i++)
+                    {
+                        if(t2.get(i).getArrivalTime()==cpuTimer)
+                        {
+                            flag2 = 1;
+                        }
+                    }
+                    //re send the processes to the queue
+                    for(int i=t2.size()-1;i>=0;i--)
+                    {
+                        Q3.offer(t2.get(i));
+                    }
+                    if(flag2==1)//there is a process with less SRT
+                        break;
+
+                    System.out.print(cpuTimer+" ");
                         counter++;
                         cpuTimer++;
                         p.getCpuBurst().set(0,p.getCpuBurst().get(0)-1);
@@ -810,7 +875,7 @@ public class Main {
 
                 System.out.print("]");
                 System.out.println();
-                if(flag==1)
+                if(flag==1||flag3==1||flag2==1)
                      System.out.println("PROCESS ("+p.getpID()+") HAS BEEN EXECUTING FOR: "+counter+"\n"+"AND THE REMAINING TIME FOR THIS CPU BURST: "+(tmpBurst-counter));
                 else
                     System.out.println("PROCESS ("+p.getpID()+") HAS BEEN EXECUTING FOR: "+(counter-1)+"\n"+"AND THE REMAINING TIME FOR THIS CPU BURST: "+(tmpBurst-(counter-1)));
@@ -822,7 +887,7 @@ public class Main {
                     printProcessesInQ3(p);
                     printProcessesInQ4(p);            }
 
-                if(flag==1)
+                if(flag==1||flag3==1||flag2==1)
                     p.setTotalWorked(p.getTotalWorked()+counter);
                 else {
                     counter--;
@@ -863,7 +928,6 @@ public class Main {
                                         {
                                             averageWaiting.remove(i);
                                             averageWaiting.add(p);
-                                         //   i=-1;
                                             exist=1;
                                         }
                                     }
@@ -872,13 +936,12 @@ public class Main {
                             }
                 }
 
-                else if(flag==1)
+                else if(flag==1||flag2==1||flag3==1)
                     {
                         p.setArrivalTime(cpuTimer);
                         Q4.offer(p);//put the process back in the QUEUE
                     }
     }
-
     public static int randomMaxArrivalTime(int max){
         int x;
         Random random=new Random();
